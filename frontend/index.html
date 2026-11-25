@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Protocolo notarial · GADLP</title>
+<style>
+*{box-sizing:border-box}body{font:16px/1.55 system-ui,sans-serif;background:#f3f4ef;color:#203435;margin:0}
+main{max-width:880px;margin:5vh auto;padding:2rem}header{border-bottom:3px solid #176253;margin-bottom:2rem}
+h1,h2{font-family:Georgia,serif}h1{font-size:clamp(2rem,6vw,3.5rem);line-height:1.1}
+section,form{background:white;border:1px solid #c9d6d0;padding:1.25rem;margin:1rem 0;border-radius:.4rem}
+button{background:#155d50;color:white;padding:.65rem 1rem;border:0;border-radius:.25rem;cursor:pointer}
+button:disabled{opacity:.5}input{max-width:100%;padding:.45rem}pre{white-space:pre-wrap;font:inherit}a{color:#125549}
+</style>
+<main><header><p>GADLP · Notaría</p><h1>Transcripción documental</h1></header>
+<form id="form"><label>Archivos del expediente <input id="files" required multiple type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.bmp,.tif,.tiff,.webp"></label>
+<p id="orden"></p><button>Procesar documentos</button></form>
+<p role="status" id="estado"></p>
+<section id="resultado" hidden><h2>Protocolo</h2><p id="revision"></p><pre id="texto"></pre><a id="docx">Descargar Word</a>
+<h2>Revisión por página</h2><div id="paginas"></div>
+<h2>Segmentos sugeridos</h2><ol id="segmentos"></ol><button id="dividir">Descargar por segmentos</button>
+<h2>Corte de páginas</h2><label>Páginas <input id="rango" placeholder="1,3-5"></label> <button id="cortar">Generar corte</button><ul id="salidas"></ul></section>
+</main><script type="module">
+import {NotariaAPI} from "./api.js";
+const api = new NotariaAPI();
+const el = id => document.getElementById(id);
+let result;
+function link(url, title) {
+  const li = document.createElement("li"), a = document.createElement("a");
+  a.href = api.baseURL + url; a.textContent = title; li.append(a); el("salidas").append(li);
+}
+el("files").onchange = () => { el("orden").textContent = Array.from(el("files").files, f => f.name).join(" → "); };
+el("form").onsubmit = async event => {
+  event.preventDefault();
+  const button = el("form").querySelector("button");
+  button.disabled = true; el("resultado").hidden = true; el("estado").textContent = "Enviando…";
+  try {
+    const {job_id} = await api.procesar(el("files").files);
+    while (true) {
+      const job = await api.estado(job_id);
+      if (job.status === "failed") throw new Error(job.error);
+      if (job.status === "completed") break;
+      el("estado").textContent = job.status === "queued" ? "En cola…" : `Procesando ${job.processed_pages} de ${job.total_pages ?? "…"} páginas`;
+      await new Promise(resolve => setTimeout(resolve, 800));
+    }
+    result = await api.resultado(job_id);
+    el("estado").textContent = `Trabajo completado · ${result.total_pages} página(s)`;
+    el("texto").textContent = result.protocol;
+    el("revision").textContent = result.requires_review ? "Hay contenido marcado para revisión humana." : "Sin alertas automáticas.";
+    el("docx").href = api.baseURL + result.protocol_url;
+    for (const id of ["paginas","salidas","segmentos"]) el(id).replaceChildren();
+    for (const p of result.pages) {
+      const d = document.createElement("details"), s = document.createElement("summary"), t = document.createElement("pre");
+      s.textContent = `${p.page}. ${p.source_name} · ${p.engine}${p.requires_review ? " · Revisar" : ""}`;
+      t.textContent = [p.text, p.warning, ...p.stamps.map(x => "Posible sello: " + x.text)].filter(Boolean).join("\n");
+      d.append(s,t); el("paginas").append(d);
+    }
+    for (const d of result.documents) {
+      const li = document.createElement("li"); li.textContent = `${d.name} · pp. ${d.start_page}–${d.end_page}`; el("segmentos").append(li);
+    }
+    el("resultado").hidden = false;
+  } catch(e) { el("estado").textContent = e.message; }
+  finally { button.disabled = false; }
+};
+el("dividir").onclick = async () => {
+  try { for (const d of (await api.dividir(result.job_id,result.documents)).documents) link(d.url,d.name); }
+  catch(e) { el("estado").textContent = e.message; }
+};
+el("cortar").onclick = async () => {
+  try { const r = await api.cortar(result.job_id,el("rango").value); link(r.url,`Corte · ${r.exported_pages} página(s)`); }
+  catch(e) { el("estado").textContent = e.message; }
+};
+</script></html>

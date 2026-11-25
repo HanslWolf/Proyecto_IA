@@ -11,7 +11,9 @@ def suggest_segments(pages):
             letters = [c for c in line if c.isalpha()]
             if match and letters and sum(c.isupper() for c in letters) / len(letters) >= .75:
                 title = line.strip()[:100]; break
-        if current is None or title:
+        new_file = page.get("source_page") == 1
+        repeated = current and title and current["name"].casefold() == title.casefold()
+        if current is None or new_file or (title and not repeated):
             current = {"name": title or f"Documento {len(documents)+1}", "start_page": page["page"], "end_page": page["page"]}
             documents.append(current)
         else: current["end_page"] = page["page"]

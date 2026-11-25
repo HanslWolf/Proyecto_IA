@@ -8,3 +8,5 @@ numpy>=1.26
 Pillow>=10
 pytesseract>=0.3.10
 # PaddlePaddle + PaddleOCR: instalar según SO y CPU/GPU siguiendo documentación oficial.
+
+python-docx>=1.1,<2
