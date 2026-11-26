@@ -10,7 +10,7 @@ from threading import Semaphore
 
 import pymupdf as fitz
 import schemas
-from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
@@ -105,7 +105,7 @@ def process_job(job_id):
             out = folder / "output"
             out.mkdir(exist_ok=True)
             save_protocol(protocol, out / "protocolo.docx")
-            payload = dict(job_id=job_id, total_pages=len(pages), pages=pages, documents=documents,
+            payload = dict(job_id=job_id, area=state.get("area"), total_pages=len(pages), pages=pages, documents=documents,
                            sources=sources, protocol=protocol, requires_review=any(p["requires_review"] for p in pages),
                            protocol_url=f"/trabajos/{job_id}/archivos/protocolo.docx")
             write_json(folder / "result.json", payload)
@@ -124,7 +124,8 @@ def health():
 
 
 @app.post("/procesar", status_code=202, response_model=schemas.Accepted)
-async def process_files(background: BackgroundTasks, files: list[UploadFile] = File(...)):
+async def process_files(background: BackgroundTasks, files: list[UploadFile] = File(...),
+                        area: schemas.Area | None = Form(None)):
     if not 1 <= len(files) <= 30:
         raise HTTPException(400, "Adjunte entre 1 y 30 archivos")
     job_id = uuid.uuid4().hex
@@ -153,7 +154,7 @@ async def process_files(background: BackgroundTasks, files: list[UploadFile] = F
             entries.append(dict(name=name, stored=stored))
         saved = [e["name"] for e in entries]
         write_json(folder / "inputs.json", entries)
-        write_json(folder / "state.json", dict(status="queued", files=saved, processed_pages=0, total_pages=None))
+        write_json(folder / "state.json", dict(status="queued", area=area, files=saved, processed_pages=0, total_pages=None))
     except Exception:
         shutil.rmtree(folder, ignore_errors=True)
         raise

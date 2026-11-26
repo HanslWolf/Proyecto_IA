@@ -1,13 +1,7 @@
-# Entrada del módulo neuronal
+# OCR neuronal integrado
 
-Coloca aquí el módulo del equipo (por ejemplo motor.py) y sus pesos según las instrucciones de su autora. Configura NOTARIA_OCR_MODULE=ocr_neuronal.motor antes de iniciar Uvicorn. Instala las dependencias de ese módulo en el mismo entorno Python 3.11.
+El proveedor predeterminado es ocr_neuronal.neural_ocr.recognize. Se basa en el módulo entregado por el equipo y llama a PaddleOCR.predict sobre una imagen NumPy BGR uint8. Reutiliza la instancia en el proceso y devuelve una lista ordenada con text y confidence por línea. Un resultado vacío es []; un fallo técnico genera una excepción. extract_text conserva la interfaz de diccionario y añade scores paralelos a lines.
 
-El módulo exporta recognize(image_bgr). Recibe un ndarray NumPy uint8 (alto, ancho, 3), con canales BGR. Devuelve una lista en orden de lectura. Ejemplo de salida:
+Instala requirements-neuronal.txt en el entorno del backend. La configuración del MVP usa CPU, dos hilos, detector PP-OCRv5_mobile_det, reconocedor latin_PP-OCRv5_mobile_rec y orientación PP-LCNet_x1_0_textline_ori. El preprocesamiento suave es opcional en la utilidad de la autora; el flujo integrado conserva el BGR original. El adaptador del backend mantiene NOTARIA_OCR_MODULE para sustituir al proveedor si el equipo lo requiere. La conversión y el orden de páginas siguen siendo responsabilidad de services/document_service.py.
 
-    [{"text": "Contrato de servicios.", "confidence": 0.91}]
-
-Devuelve [] cuando no reconoce texto y lanza una excepción si falla el motor. La confianza es decimal entre 0 y 1. El adaptador carga el proveedor al primer uso, en el mismo proceso, y serializa llamadas. También recibe recortes de posibles sellos. No cambies los endpoints para conectar otro proveedor.
-
-Sin módulo configurado se intenta el adaptador de la API de PaddleOCR 2.x de la base original. Si tu instalación usa 3.x, implementa recognize con la API de tu versión y selecciona ese módulo. El MVP básico requiere únicamente Tesseract. Las dependencias y los pesos de Paddle no se distribuyen en el ZIP.
-
-Aceptación con el módulo real: procesar la misma página de transcripción conocida con el módulo configurado, inspeccionar engine, warning y text, y comparar con el original. Una llamada neuronal no implica que su resultado será seleccionado. La prueba test_external_adapter verifica el contrato con un proveedor controlado.
+Prepara los pesos con python -m ocr_neuronal.preparar_modelos desde backend. Se buscan en backend/modelos/ o en NOTARIA_MODELOS si se define. Si no existe un directorio local configurado, Paddle puede intentar su descarga automática. Consulta INSTALACION_WINDOWS.md para instalar y probar la ruta local.

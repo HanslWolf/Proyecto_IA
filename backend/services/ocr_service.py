@@ -37,15 +37,21 @@ def tesseract(image):
 
 
 def paddle(image):
-    lines, scores = [], []
+    lines, scores, lengths = [], [], []
     for item in neural.recognize(image):
         score = float(item["confidence"])
         if not math.isfinite(score) or not 0 <= score <= 1 or not isinstance(item["text"], str):
             raise ValueError("Respuesta neuronal inválida")
         if item["text"].strip():
             scores.append(score)
+            lengths.append(len(item["text"].strip()))
             lines.append(item["text"].strip() if score >= .60 else "ilegible")
-    return summarize([lines], scores, "paddleocr")
+    result = summarize([lines], scores, "paddleocr")
+    if scores:
+        # Ponderar por la longitud original, incluso si la línea se marcó ilegible.
+        result["confidence"] = sum(score * length for score, length in zip(scores, lengths)) / sum(lengths)
+        result["requires_review"] |= result["confidence"] < .85
+    return result
 
 
 def extract_page_text(image, *, optional=False):
@@ -61,7 +67,7 @@ def extract_page_text(image, *, optional=False):
             # Una lectura corta de alta confianza puede omitir casi toda la página.
             def rank(result):
                 return len(result["text"].replace("ilegible", "").strip()) * result["confidence"] ** 2
-            if rank(second) > rank(first):
+            if first["engine"] == "tesseract_error" or rank(second) > rank(first):
                 first = second
         except Exception as exc:
             warnings.append(f"OCR neuronal no disponible ({type(exc).__name__})")

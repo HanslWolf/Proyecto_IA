@@ -3,6 +3,9 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 
+Area = Literal["contratos", "personeria_juridica"]
+
+
 class Health(BaseModel):
     ok: bool
     service: str
@@ -43,6 +46,7 @@ class Page(BaseModel):
 
 
 class Result(BaseModel):
+    area: Area | None = None
     job_id: str
     total_pages: int
     pages: list[Page]
@@ -54,6 +58,7 @@ class Result(BaseModel):
 
 
 class State(BaseModel):
+    area: Area | None = None
     status: Literal["queued", "processing", "completed", "failed"]
     files: list[str] = []
     processed_pages: int = 0

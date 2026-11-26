@@ -13,9 +13,10 @@ export class NotariaAPI {
     return data;
   }
 
-  procesar(files) {
+  procesar(files, area) {
     const body = new FormData();
     for (const file of files) body.append("files", file);
+    if (area) body.append("area", area);
     return this.request("/procesar", {method: "POST", body});
   }
 

@@ -91,7 +91,7 @@ class Backend(unittest.TestCase):
         result = self.result([("scan.png", image), ("mixto.pdf", mixed)])
         scan, mixed = result["pages"]
         self.assertIn("CONTRATO", scan["text"].upper())
-        self.assertEqual(scan["engine"], "tesseract")
+        self.assertIn(scan["engine"], {"tesseract", "paddleocr"})
         self.assertTrue(scan["stamps"] and scan["requires_review"])
         self.assertIn("SELLO", scan["stamps"][0]["text"].upper())
         self.assertEqual(mixed["engine"], "mixed")

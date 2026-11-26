@@ -5,7 +5,7 @@ URL base local: `http://127.0.0.1:8000`. Swagger UI en `/docs`; especificación 
 | Método y ruta | Entrada | Éxito |
 |---|---|---|
 | GET /salud | Sin parámetros | 200 · {"ok":true,"service":"sistema-notarial-mvp"} |
-| POST /procesar | multipart/form-data, campo repetido files en orden | 202 · {"job_id":"ID","status":"queued","files":["acta.pdf"]} |
+| POST /procesar | multipart/form-data, campo repetido files en orden y area opcional | 202 · {"job_id":"ID","status":"queued","files":["acta.pdf"]} |
 | GET /trabajos/{job_id} | ID en la ruta | 200 · status, files, processed_pages, total_pages y, cuando corresponde, error o result |
 | GET /trabajos/{job_id}/resultado | ID en la ruta | 200 · Resultado completo al terminar |
 | POST /dividir | JSON con job_id y documents | 200 · documents con name, start_page, end_page, file y url |
@@ -17,6 +17,8 @@ URL base local: `http://127.0.0.1:8000`. Swagger UI en `/docs`; especificación 
 ```powershell
 curl.exe -F "files=@contrato.pdf" -F "files=@anexo.docx" http://127.0.0.1:8000/procesar
 ```
+
+El campo multipart opcional area acepta contratos o personeria_juridica. Se guarda como metadato en el estado y en el resultado. Si se omite puede ser null. Ambos valores usan el mismo procesamiento documental.
 
 Envía de 1 a 30 adjuntos. Máximo 30 MiB por archivo, 150 MiB por trabajo, 500 páginas combinadas. Admite PDF, DOC binario de Word, DOCX, PNG, JPEG, TIFF, BMP y WebP. En JavaScript, adjunta cada archivo con FormData.append("files", archivo); el navegador genera el encabezado multipart.
 

@@ -11,16 +11,8 @@ _lock = Lock()
 
 @lru_cache(maxsize=1)
 def provider():
-    custom = os.getenv("NOTARIA_OCR_MODULE")
-    if custom:
-        return importlib.import_module(custom).recognize
-    from paddleocr import PaddleOCR
-    engine = PaddleOCR(lang=os.getenv("PADDLEOCR_LANG", "es"), use_angle_cls=True, show_log=False)
-
-    def recognize(image):
-        raw = engine.ocr(image, cls=True)
-        return [dict(text=item[1][0], confidence=item[1][1]) for item in (raw[0] or [])] if raw else []
-    return recognize
+    name = os.getenv("NOTARIA_OCR_MODULE") or "ocr_neuronal.neural_ocr"
+    return importlib.import_module(name).recognize
 
 
 def recognize(image):

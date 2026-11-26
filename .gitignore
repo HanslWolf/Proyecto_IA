@@ -3,3 +3,6 @@ __pycache__/
 *.py[cod]
 backend/data/
 .env
+backend/.venv-integrado/
+backend/modelos/
+venv_ocr/
